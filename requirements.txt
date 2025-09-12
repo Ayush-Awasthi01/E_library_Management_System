@@ -2,6 +2,4 @@ Flask==2.3.5
 mysql-connector-python==8.1.0
 Werkzeug==2.3.8
 python-dotenv==1.0.0
-gunicorngit add Procfile requirements.txt
-git commit -m "Added Procfile for deployment"
-git push origin main
+gunicorn==22.1.0
