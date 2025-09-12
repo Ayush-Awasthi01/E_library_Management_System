@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card p-4">
+  <h3>Add / Upload Book</h3>
+  <form method="post" enctype="multipart/form-data">
+    <div class="mb-3"><input class="form-control" name="title" placeholder="Title" required></div>
+    <div class="mb-3"><input class="form-control" name="author" placeholder="Author" required></div>
+    <div class="mb-3"><input class="form-control" name="category" placeholder="Category"></div>
+    <div class="mb-3"><input class="form-control" name="isbn" placeholder="ISBN"></div>
+    <div class="mb-3"><textarea class="form-control" name="description" placeholder="Short description"></textarea></div>
+    <div class="mb-3"><label>Cover image (jpg/png)</label><input class="form-control" type="file" name="cover_image" accept="image/*"></div>
+    <div class="mb-3"><label>PDF file</label><input class="form-control" type="file" name="pdf_file" accept="application/pdf"></div>
+    <button class="btn btn-primary">Add Book</button>
+  </form>
+</div>
+{% endblock %}

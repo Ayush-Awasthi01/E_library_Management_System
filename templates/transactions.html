@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>All Transactions</h2>
+<table class="table table-striped">
+  <thead><tr><th>Student</th><th>Book</th><th>Borrowed</th><th>Due</th><th>Returned</th></tr></thead>
+  <tbody>
+    {% for t in transactions %}
+      <tr>
+        <td>{{ t.student_username }}</td>
+        <td>{{ t.title }}</td>
+        <td>{{ t.borrow_date }}</td>
+        <td>{{ t.return_date }}</td>
+        <td>{{ 'Yes' if t.is_returned else 'No' }}</td>
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

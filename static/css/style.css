@@ -1,0 +1,46 @@
+/* Body background */
+body {
+    background: url('../images/download 2.jpg') no-repeat center center fixed;
+    background-size: cover;
+    min-height: 100vh;
+    color: #fff;
+    font-family: 'Arial', sans-serif;
+}
+
+
+
+/* Make cards semi-transparent */
+.card {
+    background-color: rgba(0, 0, 0, 0.6) !important; /* dark translucent */
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+}
+
+/* Table headers and badges */
+.table thead {
+    background-color: rgba(255, 255, 255, 0.1); /* semi-transparent header */
+    color: #fff;
+}
+
+.table tbody tr:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Buttons */
+.btn-primary, .btn-warning, .btn-secondary, .btn-info, .btn-danger {
+    border-radius: 8px;
+    font-weight: bold;
+}
+
+/* Modal background */
+.modal-content {
+    background-color: rgba(0,0,0,0.8);
+    color: #fff;
+}
+
+/* Scrollbar for long tables */
+.table-responsive {
+    max-height: 400px;
+    overflow-y: auto;
+}

@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Catalog</h2>
+
+<form method="post" class="row g-2 mb-3">
+  <div class="col-md-4"><input class="form-control" name="keyword" placeholder="Search by title or author" value="{{ keyword or '' }}"></div>
+  <div class="col-md-3">
+    <select class="form-select" name="category">
+      <option value="">All categories</option>
+      {% for c in categories %}
+        <option value="{{ c }}" {% if c==category %}selected{% endif %}>{{ c }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="col-md-2">
+    <div class="form-check">
+      <input class="form-check-input" name="only_available" type="checkbox" {% if only_available %}checked{% endif %}>
+      <label class="form-check-label">Available only</label>
+    </div>
+  </div>
+  <div class="col-md-3"><button class="btn btn-primary">Search/Filter</button></div>
+</form>
+
+<div class="row">
+  {% for b in books %}
+  <div class="col-md-4 mb-3">
+    <div class="card h-100">
+      {% if b.cover_image %}
+      <img src="{{ url_for('static', filename='uploads/covers/' ~ b.cover_image) }}" class="card-img-top" style="height:200px; object-fit:cover;">
+      {% endif %}
+      <div class="card-body">
+        <h5 class="card-title">{{ b.title }}</h5>
+        <p class="card-text"><strong>Author:</strong> {{ b.author }}</p>
+        <p class="card-text"><strong>Category:</strong> {{ b.category or '—' }}</p>
+        <p class="card-text">{{ b.description[:120] }}{% if b.description and b.description|length>120 %}...{% endif %}</p>
+      </div>
+      <div class="card-footer d-flex justify-content-between">
+        {% if session.get('user_type')=='Student' %}
+          {% if b.is_available %}
+            <a class="btn btn-success btn-sm" href="{{ url_for('borrow', book_id=b.id) }}">Borrow</a>
+          {% else %}
+            <span class="badge bg-secondary">Not available</span>
+          {% endif %}
+        {% endif %}
+        {% if b.pdf_file %}
+          <a class="btn btn-outline-primary btn-sm" href="{{ url_for('download_pdf', filename=b.pdf_file) }}">PDF</a>
+        {% endif %}
+        {% if session.get('user_type')=='Admin' %}
+          <a class="btn btn-sm btn-info" href="{{ url_for('admin_edit_book', book_id=b.id) }}">Edit</a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

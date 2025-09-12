@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>My Borrowed Books</h2>
+<table class="table table-bordered">
+  <thead><tr><th>Title</th><th>Borrowed</th><th>Due</th><th>Actions</th></tr></thead>
+  <tbody>
+    {% for t in books %}
+      <tr>
+        <td>{{ t.title }}</td>
+        <td>{{ t.borrow_date }}</td>
+        <td>{{ t.return_date }}</td>
+        <td>
+          {% if t.pdf_file %}
+            <a class="btn btn-sm btn-info" href="{{ url_for('download_pdf', filename=t.pdf_file) }}">Read / Download</a>
+          {% endif %}
+          <a class="btn btn-sm btn-warning" href="{{ url_for('return_book', book_id=t.book_id) }}">Return</a>
+        </td>
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

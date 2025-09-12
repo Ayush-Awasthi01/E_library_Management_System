@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Search Results</h2>
+<ul>
+{% for book in books %}
+    <li>
+        {{ book.title }} by {{ book.author }}
+        <a href="{{ url_for('download_file', filename=book.pdf_file) }}">📥 Download</a>
+    </li>
+{% else %}
+    <p>No books found.</p>
+{% endfor %}
+</ul>
+{% endblock %}

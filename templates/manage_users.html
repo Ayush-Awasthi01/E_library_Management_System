@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Manage Students</h2>
+<table class="table">
+  <thead><tr><th>Username</th><th>Email</th><th>Created</th><th>Action</th></tr></thead>
+  <tbody>
+    {% for s in students %}
+      <tr>
+        <td>{{ s.username }}</td><td>{{ s.email }}</td><td>{{ s.created_at }}</td>
+        <td>
+          <form method="post" action="{{ url_for('admin_delete_user', username=s.username) }}" onsubmit="return confirm('Delete user?')">
+            <button class="btn btn-sm btn-danger">Delete</button>
+          </form>
+        </td>
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}
