@@ -1,12 +1,13 @@
 # dao/user_dao.py
-import psycopg2
-from psycopg2.extras import DictCursor
+import psycopg
+from psycopg.rows import dict_row
 from config import DB_CONFIG
 import hashlib
 
 # ----- Helper functions -----
 def get_connection():
-    return psycopg2.connect(DB_CONFIG["url"], cursor_factory=DictCursor)
+    # Returns a connection with dict-like row access
+    return psycopg.connect(DB_CONFIG["url"], row_factory=dict_row)
 
 def hash_password(password: str) -> str:
     return hashlib.sha256(password.encode()).hexdigest()
@@ -19,7 +20,7 @@ class UserDAO:
             cursor = conn.cursor()
             hashed = hash_password(password)
             cursor.execute(
-                "INSERT INTO users (username, password, user_type, email) VALUES (%s,%s,%s,%s)",
+                "INSERT INTO users (username, password, user_type, email) VALUES (%s, %s, %s, %s)",
                 (username, hashed, user_type, email)
             )
             conn.commit()
@@ -36,7 +37,7 @@ class UserDAO:
                 "SELECT username, user_type, email FROM users WHERE username=%s AND password=%s",
                 (username, hashed)
             )
-            return cursor.fetchone()  # returns a dict thanks to DictCursor
+            return cursor.fetchone()  # returns a dict thanks to row_factory=dict_row
         finally:
             cursor.close()
             conn.close()

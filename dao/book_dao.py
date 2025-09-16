@@ -1,11 +1,13 @@
 # dao/book_dao.py
-import psycopg2
-from psycopg2.extras import DictCursor
+import psycopg
+from psycopg.rows import dict_row
 from config import DB_CONFIG
 
+# ----- Helper function -----
 def get_connection():
-    return psycopg2.connect(DB_CONFIG["url"], cursor_factory=DictCursor)
+    return psycopg.connect(DB_CONFIG["url"], row_factory=dict_row)
 
+# ----- DAO Class -----
 class BookDAO:
     def add_book(self, title, author, category, isbn, description, cover_image, pdf_file):
         conn = get_connection()

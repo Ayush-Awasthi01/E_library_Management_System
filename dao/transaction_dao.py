@@ -1,11 +1,13 @@
 # dao/transaction_dao.py
-import psycopg2
-from psycopg2.extras import DictCursor
+import psycopg
+from psycopg.rows import dict_row
 from config import DB_CONFIG
 
+# ----- Helper function -----
 def get_connection():
-    return psycopg2.connect(DB_CONFIG["url"], cursor_factory=DictCursor)
+    return psycopg.connect(DB_CONFIG["url"], row_factory=dict_row)
 
+# ----- DAO Class -----
 class TransactionDAO:
     def borrow_book(self, book_id, student_username):
         conn = get_connection()
@@ -17,10 +19,10 @@ class TransactionDAO:
             if not book or not book["is_available"]:
                 return False
             # Borrow book
-            cursor.execute("""
-                INSERT INTO transactions (book_id, student_username)
-                VALUES (%s,%s)
-            """, (book_id, student_username))
+            cursor.execute(
+                "INSERT INTO transactions (book_id, student_username) VALUES (%s, %s)",
+                (book_id, student_username)
+            )
             cursor.execute("UPDATE books SET is_available=FALSE WHERE id=%s", (book_id,))
             conn.commit()
             return True
@@ -57,7 +59,8 @@ class TransactionDAO:
         try:
             cursor = conn.cursor()
             cursor.execute("""
-                SELECT t.*, b.title, b.pdf_file FROM transactions t
+                SELECT t.*, b.title, b.pdf_file
+                FROM transactions t
                 JOIN books b ON t.book_id=b.id
                 WHERE t.student_username=%s
             """, (student_username,))
