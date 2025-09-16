@@ -2,15 +2,13 @@
 import os
 from flask import Flask, render_template, request, redirect, url_for, session, flash, send_from_directory
 from werkzeug.utils import secure_filename
-from config import SECRET_KEY, DB_CONFIG
+from config import SECRET_KEY, DB_CONFIG, EMAIL_ADDRESS, EMAIL_PASSWORD, SMTP_SERVER, SMTP_PORT
 
-from dao.user_dao import UserDAO, hash_password, get_connection as user_get_connection  # small helper
+from dao.user_dao import UserDAO, hash_password, get_connection as user_get_connection
 from dao.book_dao import BookDAO
 from dao.transaction_dao import TransactionDAO
 import smtplib
 from email.message import EmailMessage
-  # session ends when browser closes
-
 
 app = Flask(__name__)
 app.secret_key = SECRET_KEY
@@ -68,7 +66,7 @@ def login():
         if user:
             session['username'] = user['username']
             session['user_type'] = user['user_type']
-            session.permanent = False  # make sure session expires on browser close
+            session.permanent = False
             flash("Logged in successfully", "success")
             return redirect(url_for('catalog'))
         flash("Invalid credentials", "danger")
@@ -80,7 +78,6 @@ def register():
         username = request.form['username']
         email = request.form.get('email')
         password = request.form['password']
-        # basic presence check
         if not username or not password:
             flash("Username and password are required", "danger")
             return redirect(url_for('register'))
@@ -100,14 +97,7 @@ def logout():
 
 # ------- Catalog/Search/Filter -------
 BOOK_CATEGORIES = [
-    "Science Fiction",
-    "Romantic",
-    "Mystery",
-    "Biography",
-    "History",
-    "Fantasy",
-    "Self-Help",
-    "Technology"
+    "Science Fiction", "Romantic", "Mystery", "Biography", "History", "Fantasy", "Self-Help", "Technology"
 ]
 
 @app.route('/catalog', methods=['GET','POST'])
@@ -115,21 +105,9 @@ def catalog():
     keyword = request.args.get('keyword') or request.form.get('keyword')
     category = request.args.get('category') or request.form.get('category')
     only_available = request.args.get('only_available')=='1' or (request.form.get('only_available')=='on')
-    
-    # Filter books based on selected keyword, category, and availability
     books = book_dao.search_books(keyword=keyword, category=category, only_available=only_available)
-    
-    # Use fixed category list instead of generating from books
-    categories = BOOK_CATEGORIES
-    
-    return render_template(
-        'view_books.html', 
-        books=books, 
-        categories=categories, 
-        keyword=keyword, 
-        category=category, 
-        only_available=only_available
-    )
+    return render_template('view_books.html', books=books, categories=BOOK_CATEGORIES,
+                           keyword=keyword, category=category, only_available=only_available)
 
 # ------- Admin routes -------
 @app.route('/admin')
@@ -149,13 +127,10 @@ def admin_add_book():
         title = request.form['title']; author = request.form['author']; category = request.form.get('category')
         isbn = request.form.get('isbn'); description = request.form.get('description')
         cover = request.files.get('cover_image'); pdf = request.files.get('pdf_file')
-        cover_filename = None; pdf_filename = None
-        if cover and allowed_file(cover.filename, ALLOWED_IMAGE):
-            cover_filename = secure_filename(cover.filename)
-            cover.save(os.path.join(COVER_FOLDER, cover_filename))
-        if pdf and allowed_file(pdf.filename, ALLOWED_PDF):
-            pdf_filename = secure_filename(pdf.filename)
-            pdf.save(os.path.join(PDF_FOLDER, pdf_filename))
+        cover_filename = secure_filename(cover.filename) if cover and allowed_file(cover.filename, ALLOWED_IMAGE) else None
+        pdf_filename = secure_filename(pdf.filename) if pdf and allowed_file(pdf.filename, ALLOWED_PDF) else None
+        if cover_filename: cover.save(os.path.join(COVER_FOLDER, cover_filename))
+        if pdf_filename: pdf.save(os.path.join(PDF_FOLDER, pdf_filename))
         book_dao.add_book(title, author, category, isbn, description, cover_filename, pdf_filename)
         flash("Book added", "success")
         return redirect(url_for('admin_dashboard'))
@@ -170,13 +145,10 @@ def admin_edit_book(book_id):
         title = request.form['title']; author = request.form['author']; category = request.form.get('category')
         isbn = request.form.get('isbn'); description = request.form.get('description')
         cover = request.files.get('cover_image'); pdf = request.files.get('pdf_file')
-        cover_filename = book.get('cover_image'); pdf_filename = book.get('pdf_file')
-        if cover and allowed_file(cover.filename, ALLOWED_IMAGE):
-            cover_filename = secure_filename(cover.filename)
-            cover.save(os.path.join(COVER_FOLDER, cover_filename))
-        if pdf and allowed_file(pdf.filename, ALLOWED_PDF):
-            pdf_filename = secure_filename(pdf.filename)
-            pdf.save(os.path.join(PDF_FOLDER, pdf_filename))
+        cover_filename = secure_filename(cover.filename) if cover and allowed_file(cover.filename, ALLOWED_IMAGE) else book.get('cover_image')
+        pdf_filename = secure_filename(pdf.filename) if pdf and allowed_file(pdf.filename, ALLOWED_PDF) else book.get('pdf_file')
+        if cover and cover_filename: cover.save(os.path.join(COVER_FOLDER, cover_filename))
+        if pdf and pdf_filename: pdf.save(os.path.join(PDF_FOLDER, pdf_filename))
         book_dao.update_book(book_id, title, author, category, isbn, description, cover_filename, pdf_filename)
         flash("Book updated", "success")
         return redirect(url_for('admin_dashboard'))
@@ -231,8 +203,7 @@ def borrow(book_id):
     if not session.get('username') or session.get('user_type')!='Student':
         return redirect(url_for('login'))
     ok = tx_dao.borrow_book(book_id, session['username'])
-    if ok: flash("Borrowed — check My Books", "success")
-    else: flash("Cannot borrow (not available)", "danger")
+    flash("Borrowed — check My Books", "success" if ok else "Cannot borrow (not available)", "success" if ok else "danger")
     return redirect(url_for('catalog'))
 
 @app.route('/mybooks')
@@ -252,12 +223,10 @@ def return_book(book_id):
 
 @app.route('/download/pdf/<filename>')
 def download_pdf(filename):
-    # students may only download if they have borrowed it OR if admin wants to provide open download
     if session.get('user_type')=='Admin':
         return send_from_directory(PDF_FOLDER, filename, as_attachment=True)
-    # check that current user has a non-returned transaction for book with this pdf
     conn = user_get_connection()
-    cur = conn.cursor(dictionary=True)
+    cur = conn.cursor()
     cur.execute("""
         SELECT t.* FROM transactions t
         JOIN books b ON t.book_id=b.id
@@ -270,8 +239,6 @@ def download_pdf(filename):
         return send_from_directory(PDF_FOLDER, filename, as_attachment=True)
     flash("You must borrow this book to download/read its PDF.", "danger")
     return redirect(url_for('mybooks'))
-
-# static serve covers and pdfs are handled by Flask static folder
 
 if __name__=='__main__':
     app.run(debug=True)

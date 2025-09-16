@@ -1,83 +1,89 @@
 # dao/transaction_dao.py
-import mysql.connector
+import psycopg2
+from psycopg2.extras import DictCursor
 from config import DB_CONFIG
-from datetime import date, timedelta
+from datetime import datetime
 
+# ----- Helper -----
 def get_connection():
-    return mysql.connector.connect(**DB_CONFIG)
+    return psycopg2.connect(DB_CONFIG["url"], cursor_factory=DictCursor)
 
-BORROW_DAYS = 14
-
+# ----- DAO Class -----
 class TransactionDAO:
-    def borrow_book(self, book_id, username):
+    def borrow_book(self, book_id, student_username):
         conn = get_connection()
-        cursor = conn.cursor()
-        # check availability
-        cursor.execute("SELECT is_available FROM books WHERE id=%s", (book_id,))
-        row = cursor.fetchone()
-        if not row or not row[0]:
-            cursor.close(); conn.close(); return False
-        borrow_date = date.today()
-        return_date = borrow_date + timedelta(days=BORROW_DAYS)
-        cursor.execute("INSERT INTO transactions (book_id, student_username, borrow_date, return_date, is_returned) VALUES (%s,%s,%s,%s, FALSE)",
-                       (book_id, username, borrow_date, return_date))
-        cursor.execute("UPDATE books SET is_available=FALSE WHERE id=%s", (book_id,))
+        cur = conn.cursor()
+        # Check availability
+        cur.execute("SELECT available FROM books WHERE id=%s", (book_id,))
+        book = cur.fetchone()
+        if not book or not book['available']:
+            cur.close()
+            conn.close()
+            return False
+        # Insert transaction
+        cur.execute(
+            "INSERT INTO transactions (book_id, student_username) VALUES (%s,%s)",
+            (book_id, student_username)
+        )
+        # Mark book as unavailable
+        cur.execute("UPDATE books SET available=TRUE WHERE id=%s", (book_id,))
         conn.commit()
-        cursor.close()
+        cur.close()
         conn.close()
         return True
 
-    def return_book(self, book_id, username):
+    def return_book(self, book_id, student_username):
         conn = get_connection()
-        cursor = conn.cursor()
-        cursor.execute("UPDATE transactions SET is_returned=TRUE, returned_at=NOW() WHERE book_id=%s AND student_username=%s AND is_returned=FALSE",
-                       (book_id, username))
-        cursor.execute("UPDATE books SET is_available=TRUE WHERE id=%s", (book_id,))
+        cur = conn.cursor()
+        # Update transaction
+        cur.execute(
+            """UPDATE transactions 
+               SET return_date=%s, is_returned=TRUE 
+               WHERE book_id=%s AND student_username=%s AND is_returned=FALSE""",
+            (datetime.now(), book_id, student_username)
+        )
+        # Mark book as available
+        cur.execute("UPDATE books SET available=TRUE WHERE id=%s", (book_id,))
         conn.commit()
-        cursor.close()
+        cur.close()
         conn.close()
-
-    def get_student_transactions(self, username):
-        conn = get_connection()
-        cursor = conn.cursor(dictionary=True)
-        cursor.execute("""
-            SELECT t.*, b.title, b.pdf_file
-            FROM transactions t
-            JOIN books b ON t.book_id=b.id
-            WHERE t.student_username=%s
-            ORDER BY t.borrow_date DESC
-        """, (username,))
-        rows = cursor.fetchall()
-        cursor.close()
-        conn.close()
-        return rows
 
     def get_all_transactions(self):
         conn = get_connection()
-        cursor = conn.cursor(dictionary=True)
-        cursor.execute("""
-            SELECT t.*, b.title, u.email
-            FROM transactions t
-            JOIN books b ON t.book_id=b.id
-            JOIN users u ON t.student_username=u.username
-            ORDER BY t.borrow_date DESC
-        """)
-        rows = cursor.fetchall()
-        cursor.close()
+        cur = conn.cursor()
+        cur.execute("SELECT * FROM transactions ORDER BY borrow_date DESC")
+        rows = cur.fetchall()
+        cur.close()
+        conn.close()
+        return rows
+
+    def get_student_transactions(self, student_username):
+        conn = get_connection()
+        cur = conn.cursor()
+        cur.execute(
+            """SELECT t.*, b.title, b.pdf_file 
+               FROM transactions t 
+               JOIN books b ON t.book_id=b.id 
+               WHERE t.student_username=%s 
+               ORDER BY t.borrow_date DESC""",
+            (student_username,)
+        )
+        rows = cur.fetchall()
+        cur.close()
         conn.close()
         return rows
 
     def get_overdue_transactions(self):
         conn = get_connection()
-        cursor = conn.cursor(dictionary=True)
-        cursor.execute("""
-            SELECT t.id, t.student_username, t.return_date, b.title, u.email
-            FROM transactions t
-            JOIN books b ON t.book_id=b.id
-            JOIN users u ON t.student_username=u.username
-            WHERE t.is_returned=FALSE AND t.return_date < CURDATE()
-        """)
-        rows = cursor.fetchall()
-        cursor.close()
+        cur = conn.cursor()
+        cur.execute(
+            """SELECT t.*, u.email, u.username AS student_username, b.title
+               FROM transactions t
+               JOIN users u ON t.student_username=u.username
+               JOIN books b ON t.book_id=b.id
+               WHERE t.is_returned=FALSE AND t.borrow_date < NOW() - INTERVAL '14 days'"""
+        )
+        rows = cur.fetchall()
+        cur.close()
         conn.close()
         return rows
