@@ -3,14 +3,77 @@
 <div class="card p-4">
   <h3>Add / Upload Book</h3>
   <form method="post" enctype="multipart/form-data">
-    <div class="mb-3"><input class="form-control" name="title" placeholder="Title" required></div>
-    <div class="mb-3"><input class="form-control" name="author" placeholder="Author" required></div>
-    <div class="mb-3"><input class="form-control" name="category" placeholder="Category"></div>
-    <div class="mb-3"><input class="form-control" name="isbn" placeholder="ISBN"></div>
-    <div class="mb-3"><textarea class="form-control" name="description" placeholder="Short description"></textarea></div>
-    <div class="mb-3"><label>Cover image (jpg/png)</label><input class="form-control" type="file" name="cover_image" accept="image/*"></div>
-    <div class="mb-3"><label>PDF file</label><input class="form-control" type="file" name="pdf_file" accept="application/pdf"></div>
-    <button class="btn btn-primary">Add Book</button>
+    <!-- Title -->
+    <div class="mb-3">
+      <input class="form-control" type="text" name="title" placeholder="Title" required>
+    </div>
+
+    <!-- Author -->
+    <div class="mb-3">
+      <input class="form-control" type="text" name="author" placeholder="Author" required>
+    </div>
+
+    <!-- Category -->
+    <div class="mb-3">
+      <input class="form-control" type="text" name="category" placeholder="Category">
+    </div>
+
+    <!-- ISBN -->
+    <div class="mb-3">
+      <input class="form-control" type="text" name="isbn" placeholder="ISBN">
+    </div>
+
+    <!-- Description -->
+    <div class="mb-3">
+      <textarea class="form-control" name="description" placeholder="Short description"></textarea>
+    </div>
+
+    <!-- Cover Image -->
+    <div class="mb-3">
+      <label>Cover image (jpg/png)</label>
+      <input class="form-control" type="file" name="cover_image" accept="image/*" id="coverInput">
+      <img id="coverPreview" src="#" alt="Cover Preview" style="display:none; max-height:150px; margin-top:10px;">
+    </div>
+
+    <!-- PDF File -->
+    <div class="mb-3">
+      <label>PDF file</label>
+      <input class="form-control" type="file" name="pdf_file" accept="application/pdf" id="pdfInput">
+      <p id="pdfName" style="margin-top:5px; font-style:italic;"></p>
+    </div>
+
+    <!-- Submit -->
+    <button type="submit" class="btn btn-primary">Add Book</button>
   </form>
 </div>
+
+<!-- JavaScript for Preview -->
+<script>
+  const coverInput = document.getElementById('coverInput');
+  const coverPreview = document.getElementById('coverPreview');
+  coverInput.addEventListener('change', function(){
+    const file = this.files[0];
+    if(file){
+      const reader = new FileReader();
+      reader.onload = function(e){
+        coverPreview.src = e.target.result;
+        coverPreview.style.display = 'block';
+      }
+      reader.readAsDataURL(file);
+    } else {
+      coverPreview.style.display = 'none';
+    }
+  });
+
+  const pdfInput = document.getElementById('pdfInput');
+  const pdfName = document.getElementById('pdfName');
+  pdfInput.addEventListener('change', function(){
+    const file = this.files[0];
+    if(file){
+      pdfName.textContent = "Selected PDF: " + file.name;
+    } else {
+      pdfName.textContent = "";
+    }
+  });
+</script>
 {% endblock %}

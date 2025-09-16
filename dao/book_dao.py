@@ -1,7 +1,7 @@
-# dao/book_dao.py
 import psycopg
 from psycopg.rows import dict_row
 from config import DB_CONFIG
+import os
 
 # ----- Helper function -----
 def get_connection():
@@ -47,12 +47,36 @@ class BookDAO:
             conn.close()
 
     def delete_book(self, book_id) -> bool:
-        """Deletes a book from the database."""
+        """Deletes a book from the database and removes associated files from disk."""
         try:
             conn = get_connection()
             with conn.cursor() as cursor:
+                # 1. Get filenames before deleting
+                cursor.execute("SELECT cover_image, pdf_file FROM books WHERE id=%s", (book_id,))
+                book = cursor.fetchone()
+
+                if not book:
+                    print("Book not found for deletion")
+                    return False
+
+                cover_image = book.get("cover_image")
+                pdf_file = book.get("pdf_file")
+
+                # 2. Delete DB record
                 cursor.execute("DELETE FROM books WHERE id=%s", (book_id,))
                 conn.commit()
+
+                # 3. Remove files from disk (if they exist)
+                if cover_image:
+                    cover_path = os.path.join("static", "uploads", "covers", cover_image)
+                    if os.path.exists(cover_path):
+                        os.remove(cover_path)
+
+                if pdf_file:
+                    pdf_path = os.path.join("static", "uploads", "pdfs", pdf_file)
+                    if os.path.exists(pdf_path):
+                        os.remove(pdf_path)
+
             return True
         except Exception as e:
             print(f"Error deleting book: {e}")
