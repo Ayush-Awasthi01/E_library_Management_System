@@ -1,63 +1,87 @@
-# dao/user_dao.py
+# dao/book_dao.py
 import psycopg
 from psycopg.rows import dict_row
 from config import DB_CONFIG
-import hashlib
 
-# ----- Helper functions -----
+# ----- Helper -----
 def get_connection():
-    # Returns a connection with dict-like row access
     return psycopg.connect(DB_CONFIG["url"], row_factory=dict_row)
 
-def hash_password(password: str) -> str:
-    return hashlib.sha256(password.encode()).hexdigest()
-
 # ----- DAO Class -----
-class UserDAO:
-    def add_user(self, username, password, user_type='Student', email=None):
-        conn = get_connection()
-        try:
-            cursor = conn.cursor()
-            hashed = hash_password(password)
-            cursor.execute(
-                "INSERT INTO users (username, password, user_type, email) VALUES (%s, %s, %s, %s)",
-                (username, hashed, user_type, email)
-            )
-            conn.commit()
-        finally:
-            cursor.close()
-            conn.close()
+class BookDAO:
 
-    def authenticate(self, username, password):
-        conn = get_connection()
-        try:
-            cursor = conn.cursor()
-            hashed = hash_password(password)
-            cursor.execute(
-                "SELECT username, user_type, email FROM users WHERE username=%s AND password=%s",
-                (username, hashed)
-            )
-            return cursor.fetchone()  # returns a dict thanks to row_factory=dict_row
-        finally:
-            cursor.close()
-            conn.close()
+    def add_book(self, title, author, category, isbn=None, description=None, cover_image=None, pdf_file=None):
+        """Add a new book to the database."""
+        with get_connection() as conn:
+            with conn.cursor() as cursor:
+                cursor.execute(
+                    """
+                    INSERT INTO books (title, author, category, isbn, description, cover_image, pdf_file)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s)
+                    """,
+                    (title, author, category, isbn, description, cover_image, pdf_file)
+                )
+                conn.commit()
 
-    def get_all_students(self):
-        conn = get_connection()
-        try:
-            cursor = conn.cursor()
-            cursor.execute("SELECT username, email FROM users WHERE user_type='Student'")
-            return cursor.fetchall()  # list of dicts
-        finally:
-            cursor.close()
-            conn.close()
+    def get_all_books(self):
+        """Return a list of all books."""
+        with get_connection() as conn:
+            with conn.cursor() as cursor:
+                cursor.execute("SELECT * FROM books ORDER BY id")
+                return cursor.fetchall()
 
-    def delete_user(self, username):
-        conn = get_connection()
-        try:
-            cursor = conn.cursor()
-            cursor.execute("DELETE FROM users WHERE username=%s", (username,))
-            conn.commit()
-        finally:
-            cursor.close()
-            conn.close()
+    def get_book(self, book_id):
+        """Return a single book by ID."""
+        with get_connection() as conn:
+            with conn.cursor() as cursor:
+                cursor.execute("SELECT * FROM books WHERE id=%s", (book_id,))
+                return cursor.fetchone()
+
+    def update_book(self, book_id, title, author, category, isbn=None, description=None, cover_image=None, pdf_file=None):
+        """Update a book's information."""
+        with get_connection() as conn:
+            with conn.cursor() as cursor:
+                cursor.execute(
+                    """
+                    UPDATE books
+                    SET title=%s, author=%s, category=%s, isbn=%s, description=%s, cover_image=%s, pdf_file=%s
+                    WHERE id=%s
+                    """,
+                    (title, author, category, isbn, description, cover_image, pdf_file, book_id)
+                )
+                conn.commit()
+
+    def delete_book(self, book_id):
+        """Delete a book by ID."""
+        with get_connection() as conn:
+            with conn.cursor() as cursor:
+                cursor.execute("DELETE FROM books WHERE id=%s", (book_id,))
+                conn.commit()
+
+    def search_books(self, keyword=None, category=None, only_available=False):
+        """Search books with optional keyword, category, and availability filter."""
+        query = "SELECT * FROM books"
+        conditions = []
+        params = []
+
+        if keyword:
+            conditions.append("(title ILIKE %s OR author ILIKE %s OR description ILIKE %s)")
+            kw = f"%{keyword}%"
+            params.extend([kw, kw, kw])
+
+        if category:
+            conditions.append("category=%s")
+            params.append(category)
+
+        if only_available:
+            conditions.append("available_copies>0")
+
+        if conditions:
+            query += " WHERE " + " AND ".join(conditions)
+
+        query += " ORDER BY id"
+
+        with get_connection() as conn:
+            with conn.cursor() as cursor:
+                cursor.execute(query, params)
+                return cursor.fetchall()
