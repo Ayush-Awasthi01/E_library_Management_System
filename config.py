@@ -1,11 +1,10 @@
 import os
 
 # Secret Key
-SECRET_KEY = "supersecretkey"
+SECRET_KEY = os.getenv("SECRET_KEY")
 
 # Render PostgreSQL
-DATABASE_URL = os.getenv("DATABASE_URL") or \
-"postgresql://library_management_pdq4_user:xcFZrRwqm7oKqGweUQrR5QkQn2V691fI@dpg-d31vqi7fte5s7380gpo0-a.oregon-postgres.render.com/library_management_pdq4"
+DATABASE_URL = os.getenv("DATABASE_URL")
 
 DB_CONFIG = {
     "url": DATABASE_URL
@@ -16,7 +15,11 @@ UPLOAD_FOLDER = "uploads"
 ALLOWED_EXTENSIONS = {"pdf", "png", "jpg", "jpeg", "gif"}
 
 # Email configuration
-SMTP_SERVER = "smtp.gmail.com"
-SMTP_PORT = 587
-EMAIL_ADDRESS = os.getenv("EMAIL_ADDRESS") or "ayushawasthi765@gmail.com"
-EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD") or "1223950Ayush@#"
+SMTP_SERVER = os.getenv("SMTP_SERVER")
+SMTP_PORT = os.getenv("SMTP_PORT", 587) # A non-sensitive fallback can be used here
+EMAIL_ADDRESS = os.getenv("EMAIL_ADDRESS")
+EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD")
+
+# Add a check to ensure critical variables are set for production
+if not all([SECRET_KEY, DATABASE_URL, EMAIL_ADDRESS, EMAIL_PASSWORD]):
+    raise ValueError("One or more critical environment variables are not set. Please configure them before running the application.")

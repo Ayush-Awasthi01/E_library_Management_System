@@ -1,79 +1,84 @@
 {% extends "base.html" %}
 {% block content %}
 <div class="card p-4">
-  <h3>Add / Upload Book</h3>
-  <form method="post" enctype="multipart/form-data">
-    <!-- Title -->
-    <div class="mb-3">
-      <input class="form-control" type="text" name="title" placeholder="Title" required>
-    </div>
+    <h3>Edit Book: {{ book.title }}</h3>
+    <form method="post" action="{{ url_for('admin_edit_book', book_id=book.id) }}" enctype="multipart/form-data">
 
-    <!-- Author -->
-    <div class="mb-3">
-      <input class="form-control" type="text" name="author" placeholder="Author" required>
-    </div>
+        <div class="mb-3">
+            <input class="form-control" type="text" name="title" placeholder="Title" value="{{ book.title }}" required>
+        </div>
 
-    <!-- Category -->
-    <div class="mb-3">
-      <input class="form-control" type="text" name="category" placeholder="Category">
-    </div>
+        <div class="mb-3">
+            <input class="form-control" type="text" name="author" placeholder="Author" value="{{ book.author }}" required>
+        </div>
 
-    <!-- ISBN -->
-    <div class="mb-3">
-      <input class="form-control" type="text" name="isbn" placeholder="ISBN">
-    </div>
+        <div class="mb-3">
+            <input class="form-control" type="text" name="category" placeholder="Category" value="{{ book.category }}">
+        </div>
 
-    <!-- Description -->
-    <div class="mb-3">
-      <textarea class="form-control" name="description" placeholder="Short description"></textarea>
-    </div>
+        <div class="mb-3">
+            <input class="form-control" type="text" name="isbn" placeholder="ISBN" value="{{ book.isbn }}">
+        </div>
 
-    <!-- Cover Image -->
-    <div class="mb-3">
-      <label>Cover image (jpg/png)</label>
-      <input class="form-control" type="file" name="cover_image" accept="image/*" id="coverInput">
-      <img id="coverPreview" src="#" alt="Cover Preview" style="display:none; max-height:150px; margin-top:10px;">
-    </div>
+        <div class="mb-3">
+            <textarea class="form-control" name="description" placeholder="Short description">{{ book.description }}</textarea>
+        </div>
 
-    <!-- PDF File -->
-    <div class="mb-3">
-      <label>PDF file</label>
-      <input class="form-control" type="file" name="pdf_file" accept="application/pdf" id="pdfInput">
-      <p id="pdfName" style="margin-top:5px; font-style:italic;"></p>
-    </div>
+        <div class="mb-3">
+            <label>Current Cover Image</label>
+            {% if book.cover_image %}
+            <img id="coverPreview" src="{{ url_for('static', filename='uploads/covers/' + book.cover_image) }}" alt="Current Cover" style="max-height:150px; display:block; margin-top:10px;">
+            {% else %}
+            <img id="coverPreview" src="#" alt="Cover Preview" style="display:none; max-height:150px; margin-top:10px;">
+            {% endif %}
+            <label for="coverInput" class="form-label mt-2">Replace Cover Image (jpg/png)</label>
+            <input class="form-control" type="file" name="cover_image" accept="image/*" id="coverInput">
+        </div>
 
-    <!-- Submit -->
-    <button type="submit" class="btn btn-primary">Add Book</button>
-  </form>
+        <div class="mb-3">
+            <label>Current PDF File</label>
+            <p id="pdfName" style="margin-top:5px; font-style:italic;">
+                {% if book.pdf_file %}
+                Selected PDF: {{ book.pdf_file }}
+                {% endif %}
+            </p>
+            <label for="pdfInput" class="form-label mt-2">Replace PDF file</label>
+            <input class="form-control" type="file" name="pdf_file" accept="application/pdf" id="pdfInput">
+        </div>
+
+        <button type="submit" class="btn btn-primary">Update Book</button>
+    </form>
 </div>
 
-<!-- JavaScript for Preview -->
 <script>
-  const coverInput = document.getElementById('coverInput');
-  const coverPreview = document.getElementById('coverPreview');
-  coverInput.addEventListener('change', function(){
-    const file = this.files[0];
-    if(file){
-      const reader = new FileReader();
-      reader.onload = function(e){
-        coverPreview.src = e.target.result;
-        coverPreview.style.display = 'block';
-      }
-      reader.readAsDataURL(file);
-    } else {
-      coverPreview.style.display = 'none';
-    }
-  });
+    const coverInput = document.getElementById('coverInput');
+    const coverPreview = document.getElementById('coverPreview');
 
-  const pdfInput = document.getElementById('pdfInput');
-  const pdfName = document.getElementById('pdfName');
-  pdfInput.addEventListener('change', function(){
-    const file = this.files[0];
-    if(file){
-      pdfName.textContent = "Selected PDF: " + file.name;
-    } else {
-      pdfName.textContent = "";
-    }
-  });
+    // Handle new cover image preview
+    coverInput.addEventListener('change', function(){
+        const file = this.files[0];
+        if(file){
+            const reader = new FileReader();
+            reader.onload = function(e){
+                coverPreview.src = e.target.result;
+                coverPreview.style.display = 'block';
+            }
+            reader.readAsDataURL(file);
+        }
+    });
+
+    const pdfInput = document.getElementById('pdfInput');
+    const pdfName = document.getElementById('pdfName');
+
+    // Handle new PDF name display
+    pdfInput.addEventListener('change', function(){
+        const file = this.files[0];
+        if(file){
+            pdfName.textContent = "Selected PDF: " + file.name;
+        } else {
+            // Keep the old name if no new file is selected
+            // This is handled by the server-side code
+        }
+    });
 </script>
 {% endblock %}

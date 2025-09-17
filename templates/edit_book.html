@@ -1,16 +1,57 @@
 {% extends "base.html" %}
 {% block content %}
 <div class="card p-4">
-  <h3>Edit Book</h3>
-  <form method="post" enctype="multipart/form-data">
-    <div class="mb-3"><input class="form-control" name="title" value="{{ book.title }}" required></div>
-    <div class="mb-3"><input class="form-control" name="author" value="{{ book.author }}" required></div>
-    <div class="mb-3"><input class="form-control" name="category" value="{{ book.category }}"></div>
-    <div class="mb-3"><input class="form-control" name="isbn" value="{{ book.isbn }}"></div>
-    <div class="mb-3"><textarea class="form-control" name="description">{{ book.description }}</textarea></div>
-    <div class="mb-3"><label>Replace Cover</label><input class="form-control" type="file" name="cover_image" accept="image/*"></div>
-    <div class="mb-3"><label>Replace PDF</label><input class="form-control" type="file" name="pdf_file" accept="application/pdf"></div>
-    <button class="btn btn-primary">Save Changes</button>
-  </form>
+    <h3>Edit Book: {{ book.title }}</h3>
+    <form method="post" action="{{ url_for('admin_edit_book', book_id=book.id) }}" enctype="multipart/form-data">
+        
+        <div class="mb-3">
+            <label for="title" class="form-label">Title</label>
+            <input class="form-control" name="title" id="title" value="{{ book.title }}" required>
+        </div>
+
+        <div class="mb-3">
+            <label for="author" class="form-label">Author</label>
+            <input class="form-control" name="author" id="author" value="{{ book.author }}" required>
+        </div>
+
+        <div class="mb-3">
+            <label for="category" class="form-label">Category</label>
+            <input class="form-control" name="category" id="category" value="{{ book.category }}">
+        </div>
+
+        <div class="mb-3">
+            <label for="isbn" class="form-label">ISBN</label>
+            <input class="form-control" name="isbn" id="isbn" value="{{ book.isbn }}">
+        </div>
+
+        <div class="mb-3">
+            <label for="description" class="form-label">Description</label>
+            <textarea class="form-control" name="description" id="description">{{ book.description }}</textarea>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label d-block">Current Cover Image</label>
+            {% if book.cover_image %}
+                <img src="{{ url_for('static', filename='uploads/covers/' ~ book.cover_image) }}" alt="Current Cover" class="img-thumbnail" style="max-height:150px;">
+            {% else %}
+                <p>No cover image uploaded.</p>
+            {% endif %}
+            <label for="coverInput" class="form-label mt-2">Replace Cover Image (jpg/png)</label>
+            <input class="form-control" type="file" name="cover_image" id="coverInput" accept="image/*">
+        </div>
+        
+        <div class="mb-3">
+            <label class="form-label d-block">Current PDF File</label>
+            {% if book.pdf_file %}
+                <p>Selected PDF: {{ book.pdf_file }}</p>
+            {% else %}
+                <p>No PDF file uploaded.</p>
+            {% endif %}
+            <label for="pdfInput" class="form-label mt-2">Replace PDF file</label>
+            <input class="form-control" type="file" name="pdf_file" id="pdfInput" accept="application/pdf">
+        </div>
+        
+        <button type="submit" class="btn btn-primary">Save Changes</button>
+    </form>
 </div>
 {% endblock %}
